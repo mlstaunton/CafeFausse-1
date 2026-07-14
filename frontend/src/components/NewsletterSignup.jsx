@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { apiUrl } from "../lib/api";
 
 export default function NewsletterSignup() {
   const [email, setEmail] = useState("");
@@ -11,7 +12,7 @@ export default function NewsletterSignup() {
     setError("");
 
     try {
-      const response = await fetch("http://localhost:5000/api/newsletter", {
+      const response = await fetch(apiUrl("/api/newsletter"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email_address: email }),

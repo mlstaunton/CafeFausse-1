@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { apiUrl } from "../lib/api";
 
 const initialState = {
   reservation_date: "",
@@ -62,7 +63,7 @@ export default function Reservations() {
 
   async function checkAvailability(dateValue, timeValue) {
     const response = await fetch(
-      `http://localhost:5000/api/reservations/availability?time_slot=${encodeURIComponent(
+      `${apiUrl("/api/reservations/availability")}?time_slot=${encodeURIComponent(
         `${dateValue}T${timeValue}`
       )}`
     );
@@ -119,7 +120,7 @@ export default function Reservations() {
     };
 
     try {
-      const response = await fetch("http://localhost:5000/api/reservations", {
+      const response = await fetch(apiUrl("/api/reservations"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payloadBody),

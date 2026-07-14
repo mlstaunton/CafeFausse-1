@@ -48,7 +48,7 @@ Backend runs on `http://localhost:5000`.
 
 Note: this project uses the `psycopg` PostgreSQL driver (v3). If you set `DATABASE_URL`, use this format:
 
-- `postgresql+psycopg://postgres:postgres@localhost:5432/cafe_fausse`
+- `postgresql+psycopg://<db_user>:<db_password>@<db_host>:5432/<db_name>`
 
 Admin defaults (change in `.env`):
 
@@ -61,6 +61,56 @@ Run from `backend/`:
 
 ```bash
 pytest
+```
+
+## Deploy To Vercel
+
+This repository is configured for a single Vercel project:
+
+- React frontend is built from `frontend/`
+- Flask API is served by `api/index.py`
+- Routing is defined in `vercel.json`
+
+### 1) Prerequisites
+
+- A hosted PostgreSQL database (Neon, Supabase, Railway, etc.)
+- Vercel CLI (`npm i -g vercel`) or GitHub integration
+
+### 2) Required Vercel Environment Variables
+
+Set these in Vercel Project Settings -> Environment Variables:
+
+- `DATABASE_URL` = `postgresql+psycopg://<db_user>:<db_password>@<db_host>:5432/<db_name>`
+- `SECRET_KEY` = long random string
+- `ADMIN_USERNAME` = admin login username
+- `ADMIN_PASSWORD` = admin login password
+
+Frontend API base URL is environment-aware:
+
+- Local dev defaults to `http://localhost:5000`
+- Vercel defaults to same-origin (`/api/...`)
+- Optional override with `VITE_API_BASE_URL`
+
+### Supabase Notes
+
+If you are using Supabase for Postgres:
+
+- Keep using SQLAlchemy via `DATABASE_URL` (or `SUPABASE_DB_URL`) with the Supabase Postgres connection string.
+- `SUPABASE_URL` and `SUPABASE_KEY` can be set for Supabase SDK usage, but they do not replace `DATABASE_URL` for this backend.
+- Never use or expose a Supabase `service_role` key in the browser.
+
+### 3) Deploy Command (CLI)
+
+Run from repository root:
+
+```bash
+vercel
+```
+
+For production:
+
+```bash
+vercel --prod
 ```
 
 ## Implemented Endpoints

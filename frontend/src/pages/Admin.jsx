@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
+import { apiOriginLabel, apiUrl } from "../lib/api";
 
-const API_BASE = "http://localhost:5000/api/admin";
+const API_BASE = apiUrl("/api/admin");
 const emptyMenu = { category: "Main Courses", name: "", description: "", price: "" };
 
 export default function Admin() {
@@ -44,7 +45,7 @@ export default function Admin() {
       return payload;
     } catch (requestError) {
       if (requestError?.message === "Failed to fetch") {
-        throw new Error("Cannot reach backend API at http://localhost:5000.");
+        throw new Error(`Cannot reach backend API at ${apiOriginLabel()}.`);
       }
       throw requestError;
     }
