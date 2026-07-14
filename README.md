@@ -81,6 +81,7 @@ This repository is configured for a single Vercel project:
 Set these in Vercel Project Settings -> Environment Variables:
 
 - `DATABASE_URL` = `postgresql+psycopg://<db_user>:<db_password>@<db_host>:5432/<db_name>`
+- `DB_AUTO_CREATE` = `true` (or `false` if you manage schema separately)
 - `SECRET_KEY` = long random string
 - `ADMIN_USERNAME` = admin login username
 - `ADMIN_PASSWORD` = admin login password
@@ -96,6 +97,7 @@ Frontend API base URL is environment-aware:
 If you are using Supabase for Postgres:
 
 - Keep using SQLAlchemy via `DATABASE_URL` (or `SUPABASE_DB_URL`) with the Supabase Postgres connection string.
+- Include `?sslmode=require` in the Supabase connection URL.
 - `SUPABASE_URL` and `SUPABASE_KEY` can be set for Supabase SDK usage, but they do not replace `DATABASE_URL` for this backend.
 - Never use or expose a Supabase `service_role` key in the browser.
 

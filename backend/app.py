@@ -1,5 +1,6 @@
 from flask import Flask, jsonify
 from flask_cors import CORS
+from sqlalchemy import text
 
 from config import Config
 from db import db
@@ -13,13 +14,37 @@ def create_app(config_override=None):
     app.config.update(config_override)
   CORS(app, supports_credentials=True)
 
+  db_init_error = None
   db.init_app(app)
   with app.app_context():
-    db.create_all()
+    if app.config.get("DB_AUTO_CREATE", True):
+      try:
+        db.create_all()
+      except Exception as exc:
+        db_init_error = str(exc)
+        app.logger.exception("Database initialization failed.")
 
   @app.get("/api/health")
   def health():
-    return jsonify({"status": "ok"}), 200
+    db_status = "ok"
+    db_error = None
+
+    try:
+      db.session.execute(text("SELECT 1"))
+    except Exception as exc:
+      db_status = "error"
+      db_error = str(exc)
+
+    payload = {
+      "status": "ok" if db_status == "ok" else "degraded",
+      "database": db_status,
+    }
+    if db_init_error:
+      payload["db_init"] = "failed"
+    if db_error:
+      payload["db_error"] = db_error
+
+    return jsonify(payload), 200
 
   app.register_blueprint(reservations_bp, url_prefix="/api/reservations")
   app.register_blueprint(newsletter_bp, url_prefix="/api/newsletter")
