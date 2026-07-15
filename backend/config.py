@@ -38,9 +38,18 @@ class Config:
   SUPABASE_URL = os.getenv("SUPABASE_URL", "")
   SUPABASE_KEY = os.getenv("SUPABASE_KEY", "")
   DB_AUTO_CREATE = env_bool("DB_AUTO_CREATE", True)
+  RAW_DATABASE_URL = os.getenv("DATABASE_URL", "")
+  RAW_SUPABASE_DB_URL = os.getenv("SUPABASE_DB_URL", "")
+  DATABASE_URL_SOURCE = (
+      "DATABASE_URL"
+      if RAW_DATABASE_URL
+      else "SUPABASE_DB_URL"
+      if RAW_SUPABASE_DB_URL
+      else "default_local"
+  )
   SQLALCHEMY_DATABASE_URI = (
-      normalize_database_url(os.getenv("DATABASE_URL"))
-      or normalize_database_url(os.getenv("SUPABASE_DB_URL"))
+      normalize_database_url(RAW_DATABASE_URL)
+      or normalize_database_url(RAW_SUPABASE_DB_URL)
       or "postgresql+psycopg://manager:quantic@localhost:5432/fausse_db"
   )
   SQLALCHEMY_TRACK_MODIFICATIONS = False

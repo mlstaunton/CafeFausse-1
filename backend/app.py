@@ -1,6 +1,7 @@
 from flask import Flask, jsonify
 from flask_cors import CORS
 from sqlalchemy import text
+from urllib.parse import urlsplit
 
 from config import Config
 from db import db
@@ -38,6 +39,8 @@ def create_app(config_override=None):
     payload = {
       "status": "ok" if db_status == "ok" else "degraded",
       "database": db_status,
+      "db_source": app.config.get("DATABASE_URL_SOURCE", "unknown"),
+      "db_host": urlsplit(app.config.get("SQLALCHEMY_DATABASE_URI", "")).hostname,
     }
     if db_init_error:
       payload["db_init"] = "failed"
