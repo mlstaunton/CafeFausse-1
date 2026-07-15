@@ -24,8 +24,12 @@ def normalize_database_url(raw_url):
   parts = urlsplit(normalized)
   query = dict(parse_qsl(parts.query, keep_blank_values=True))
 
-  # Supabase Postgres requires SSL on remote connections.
-  if parts.hostname and parts.hostname.endswith(".supabase.co") and "sslmode" not in query:
+  # Supabase Postgres/pooler requires SSL on remote connections.
+  if (
+      parts.hostname
+      and (parts.hostname.endswith(".supabase.co") or parts.hostname.endswith(".supabase.com"))
+      and "sslmode" not in query
+  ):
     query["sslmode"] = "require"
 
   return urlunsplit((parts.scheme, parts.netloc, parts.path, urlencode(query), parts.fragment))
