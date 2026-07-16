@@ -115,6 +115,33 @@ For production:
 vercel --prod
 ```
 
+## Deploy To Render
+
+This repository now includes `render.yaml` for a single Render Web Service that serves:
+
+- React frontend (built from `frontend/`)
+- Flask API (`/api/*`)
+- SPA routes (`/`, `/menu`, `/reservations`, etc.)
+
+### Render Setup
+
+1. Push this repository to GitHub.
+2. In Render, create a new **Blueprint** and select this repo.
+3. Render detects `render.yaml` and creates `cafe-fausse-web`.
+4. In service environment variables, set:
+   - `DATABASE_URL` (Render Postgres external URL is fine)
+   - `SECRET_KEY`
+   - `ADMIN_USERNAME`
+   - `ADMIN_PASSWORD`
+   - Keep `DB_AUTO_CREATE=true` for first deploy
+5. Deploy.
+
+### Render Health Check
+
+- `https://<your-render-domain>/api/health`
+
+Expected: `{"status":"ok","database":"ok",...}`
+
 ## Implemented Endpoints
 
 - `GET /api/health`

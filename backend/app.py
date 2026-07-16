@@ -1,4 +1,5 @@
-from flask import Flask, jsonify
+from pathlib import Path
+from flask import Flask, jsonify, send_from_directory
 from flask_cors import CORS
 from sqlalchemy import text
 from urllib.parse import urlsplit
@@ -9,7 +10,8 @@ from routes import admin_bp, newsletter_bp, reservations_bp
 
 
 def create_app(config_override=None):
-  app = Flask(__name__)
+  frontend_dist = Path(__file__).resolve().parent.parent / "frontend" / "dist"
+  app = Flask(__name__, static_folder=str(frontend_dist), static_url_path="/")
   app.config.from_object(Config)
   if config_override:
     app.config.update(config_override)
@@ -52,6 +54,22 @@ def create_app(config_override=None):
   app.register_blueprint(reservations_bp, url_prefix="/api/reservations")
   app.register_blueprint(newsletter_bp, url_prefix="/api/newsletter")
   app.register_blueprint(admin_bp, url_prefix="/api/admin")
+
+  @app.get("/")
+  def spa_index():
+    index_file = Path(app.static_folder) / "index.html"
+    if index_file.exists():
+      return send_from_directory(app.static_folder, "index.html")
+    return jsonify({"message": "Frontend build not found. Run frontend build."}), 503
+
+  @app.get("/<path:path>")
+  def spa_static(path):
+    if path.startswith("api/"):
+      return jsonify({"error": "Not found"}), 404
+    file_path = Path(app.static_folder) / path
+    if file_path.exists() and file_path.is_file():
+      return send_from_directory(app.static_folder, path)
+    return send_from_directory(app.static_folder, "index.html")
 
   return app
 
