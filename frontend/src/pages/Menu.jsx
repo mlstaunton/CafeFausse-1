@@ -2,6 +2,13 @@ import { useEffect, useState } from "react";
 import { menuByCategory } from "../data/content";
 import { apiUrl } from "../lib/api";
 
+const categoryLabels = {
+  Beverages: "beverages",
+  Starters: "starters",
+  "Main Courses": "mains",
+  Desserts: "deserts",
+};
+
 function formatPrice(price) {
   return `$${price.toFixed(2)}`;
 }
@@ -39,7 +46,7 @@ export default function Menu() {
       </section>
       {Object.entries(menuData).map(([category, items]) => (
         <section className="menu-section" key={category}>
-          <h3 className="menu-category">{category}</h3>
+          <h3 className="menu-category">{categoryLabels[category] || category.toLowerCase()}</h3>
           <ul className="menu-list">
             {items.map((item) => (
               <li key={item.name} className="menu-item">

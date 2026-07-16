@@ -263,6 +263,9 @@ export default function Admin() {
         <button type="button" onClick={loadMenuItems}>
           Refresh Menu Items
         </button>
+        {menuItems.length === 0 && (
+          <p>No saved menu items found yet. Add one above, then click Refresh Menu Items.</p>
+        )}
         <ul className="admin-list">
           {menuItems.map((entry) => (
             <li key={entry.menu_item_id}>
