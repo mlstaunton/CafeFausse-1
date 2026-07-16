@@ -6,6 +6,7 @@ const emptyMenu = { category: "Main Courses", name: "", description: "", price: 
 
 export default function Admin() {
   const [menuItem, setMenuItem] = useState(emptyMenu);
+  const [menuItems, setMenuItems] = useState([]);
   const [newsletter, setNewsletter] = useState([]);
   const [reservations, setReservations] = useState([]);
   const [message, setMessage] = useState("");
@@ -56,7 +57,7 @@ export default function Admin() {
       const payload = await adminFetch("/me", { method: "GET" });
       setAuth(payload);
       if (payload.authenticated) {
-        await Promise.all([loadNewsletter(), loadReservations(dateFilter)]);
+        await Promise.all([loadMenuItems(), loadNewsletter(), loadReservations(dateFilter)]);
       }
     } catch (requestError) {
       setError(requestError.message);
@@ -85,7 +86,7 @@ export default function Admin() {
       setAuth({ authenticated: true, username: payload.username || loginForm.username });
       setLoginForm({ username: "", password: "" });
       setMessage("Signed in to manager dashboard.");
-      await Promise.all([loadNewsletter(), loadReservations(dateFilter)]);
+      await Promise.all([loadMenuItems(), loadNewsletter(), loadReservations(dateFilter)]);
     } catch (requestError) {
       setError(requestError.message);
     }
@@ -97,6 +98,7 @@ export default function Admin() {
     try {
       await adminFetch("/logout", { method: "POST" });
       setAuth({ authenticated: false, username: "" });
+      setMenuItems([]);
       setNewsletter([]);
       setReservations([]);
       setMessage("Signed out.");
@@ -114,8 +116,26 @@ export default function Admin() {
         method: "POST",
         body: JSON.stringify(menuItem),
       });
-      setMessage("Menu item saved.");
+      setMessage("Menu item saved successfully.");
       setMenuItem(emptyMenu);
+      await loadMenuItems();
+    } catch (requestError) {
+      setError(requestError.message);
+    }
+  }
+
+  async function loadMenuItems() {
+    const payload = await adminFetch("/menu-items", { method: "GET" });
+    setMenuItems(payload.data || []);
+  }
+
+  async function deleteMenuItem(menuItemId, name) {
+    setMessage("");
+    setError("");
+    try {
+      await adminFetch(`/menu-items/${menuItemId}`, { method: "DELETE" });
+      setMessage(`Deleted menu item: ${name}.`);
+      await loadMenuItems();
     } catch (requestError) {
       setError(requestError.message);
     }
@@ -236,6 +256,30 @@ export default function Admin() {
           </label>
           <button type="submit">Save Item</button>
         </form>
+      </section>
+
+      <section className="card">
+        <h3>Saved Menu Items</h3>
+        <button type="button" onClick={loadMenuItems}>
+          Refresh Menu Items
+        </button>
+        <ul className="admin-list">
+          {menuItems.map((entry) => (
+            <li key={entry.menu_item_id}>
+              <div>
+                <strong>{entry.name}</strong> ({entry.category}) - ${entry.price.toFixed(2)}
+                <br />
+                <span>{entry.description}</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => deleteMenuItem(entry.menu_item_id, entry.name)}
+              >
+                Delete
+              </button>
+            </li>
+          ))}
+        </ul>
       </section>
 
       <section className="card">

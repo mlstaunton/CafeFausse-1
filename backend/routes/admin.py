@@ -75,6 +75,41 @@ def create_menu_item():
   return jsonify({"message": "Menu item created.", "menu_item_id": item.menu_item_id}), 201
 
 
+@admin_bp.get("/menu-items")
+@admin_required
+def list_menu_items():
+  rows = MenuItem.query.order_by(MenuItem.category.asc(), MenuItem.name.asc()).all()
+  return (
+      jsonify(
+          {
+              "data": [
+                  {
+                      "menu_item_id": row.menu_item_id,
+                      "category": row.category,
+                      "name": row.name,
+                      "description": row.description,
+                      "price": float(row.price),
+                  }
+                  for row in rows
+              ]
+          }
+      ),
+      200,
+  )
+
+
+@admin_bp.delete("/menu-items/<int:menu_item_id>")
+@admin_required
+def delete_menu_item(menu_item_id):
+  row = MenuItem.query.get(menu_item_id)
+  if not row:
+    return jsonify({"error": "Menu item not found."}), 404
+
+  db.session.delete(row)
+  db.session.commit()
+  return jsonify({"message": "Menu item deleted."}), 200
+
+
 @admin_bp.get("/newsletter")
 @admin_required
 def get_newsletter():

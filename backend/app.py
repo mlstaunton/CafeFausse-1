@@ -6,7 +6,7 @@ from urllib.parse import urlsplit
 
 from config import Config
 from db import db
-from routes import admin_bp, newsletter_bp, reservations_bp
+from routes import admin_bp, menu_bp, newsletter_bp, reservations_bp
 
 
 def resolve_frontend_dist():
@@ -66,6 +66,7 @@ def create_app(config_override=None):
     return jsonify(payload), 200
 
   app.register_blueprint(reservations_bp, url_prefix="/api/reservations")
+  app.register_blueprint(menu_bp, url_prefix="/api/menu-items")
   app.register_blueprint(newsletter_bp, url_prefix="/api/newsletter")
   app.register_blueprint(admin_bp, url_prefix="/api/admin")
 

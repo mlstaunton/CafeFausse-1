@@ -1,10 +1,32 @@
+import { useEffect, useState } from "react";
 import { menuByCategory } from "../data/content";
+import { apiUrl } from "../lib/api";
 
 function formatPrice(price) {
   return `$${price.toFixed(2)}`;
 }
 
 export default function Menu() {
+  const [menuData, setMenuData] = useState(menuByCategory);
+
+  useEffect(() => {
+    async function loadMenu() {
+      try {
+        const response = await fetch(apiUrl("/api/menu-items"));
+        if (!response.ok) return;
+        const payload = await response.json();
+        const data = payload?.data || {};
+        if (Object.keys(data).length > 0) {
+          setMenuData(data);
+        }
+      } catch {
+        // Keep SRS seed menu as fallback when API is unreachable.
+      }
+    }
+
+    loadMenu();
+  }, []);
+
   return (
     <main className="page menu-page">
       <section className="section-intro">
@@ -15,7 +37,7 @@ export default function Menu() {
           course.
         </p>
       </section>
-      {Object.entries(menuByCategory).map(([category, items]) => (
+      {Object.entries(menuData).map(([category, items]) => (
         <section className="menu-section" key={category}>
           <h3 className="menu-category">{category}</h3>
           <ul className="menu-list">

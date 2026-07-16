@@ -145,6 +145,7 @@ Expected: `{"status":"ok","database":"ok",...}`
 ## Implemented Endpoints
 
 - `GET /api/health`
+- `GET /api/menu-items`
 - `GET /api/reservations/availability?time_slot=<iso_datetime>`
 - `POST /api/reservations`
 - `POST /api/newsletter`
@@ -152,6 +153,8 @@ Expected: `{"status":"ok","database":"ok",...}`
 - `POST /api/admin/logout`
 - `GET /api/admin/me`
 - `POST /api/admin/menu-items` (auth required)
+- `GET /api/admin/menu-items` (auth required)
+- `DELETE /api/admin/menu-items/<menu_item_id>` (auth required)
 - `GET /api/admin/newsletter` (auth required)
 - `GET /api/admin/reservations` (auth required)
 - `DELETE /api/admin/reservations/<reservation_id>` (auth required)
