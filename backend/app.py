@@ -9,8 +9,20 @@ from db import db
 from routes import admin_bp, newsletter_bp, reservations_bp
 
 
+def resolve_frontend_dist():
+  root_dir = Path(__file__).resolve().parent.parent
+  candidates = [
+      root_dir / "frontend" / "dist",
+      root_dir / "dist",
+  ]
+  for candidate in candidates:
+    if (candidate / "index.html").exists():
+      return candidate
+  return candidates[0]
+
+
 def create_app(config_override=None):
-  frontend_dist = Path(__file__).resolve().parent.parent / "frontend" / "dist"
+  frontend_dist = resolve_frontend_dist()
   app = Flask(__name__, static_folder=str(frontend_dist), static_url_path="/")
   app.config.from_object(Config)
   if config_override:
@@ -43,6 +55,8 @@ def create_app(config_override=None):
       "database": db_status,
       "db_source": app.config.get("DATABASE_URL_SOURCE", "unknown"),
       "db_host": urlsplit(app.config.get("SQLALCHEMY_DATABASE_URI", "")).hostname,
+      "frontend_dist": app.static_folder,
+      "frontend_index_exists": (Path(app.static_folder) / "index.html").exists(),
     }
     if db_init_error:
       payload["db_init"] = "failed"
