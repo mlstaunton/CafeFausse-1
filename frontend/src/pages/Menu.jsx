@@ -8,6 +8,7 @@ const categoryLabels = {
   "Main Courses": "mains",
   Desserts: "deserts",
 };
+const categoryOrder = ["Beverages", "Starters", "Main Courses", "Desserts"];
 
 function formatPrice(price) {
   return `$${price.toFixed(2)}`;
@@ -15,6 +16,10 @@ function formatPrice(price) {
 
 export default function Menu() {
   const [menuData, setMenuData] = useState(menuByCategory);
+  const orderedCategories = [
+    ...categoryOrder.filter((category) => menuData[category]),
+    ...Object.keys(menuData).filter((category) => !categoryOrder.includes(category)),
+  ];
 
   useEffect(() => {
     async function loadMenu() {
@@ -44,11 +49,11 @@ export default function Menu() {
           course.
         </p>
       </section>
-      {Object.entries(menuData).map(([category, items]) => (
+      {orderedCategories.map((category) => (
         <section className="menu-section" key={category}>
           <h3 className="menu-category">{categoryLabels[category] || category.toLowerCase()}</h3>
           <ul className="menu-list">
-            {items.map((item) => (
+            {menuData[category].map((item) => (
               <li key={item.name} className="menu-item">
                 <div className="menu-item-copy">
                   <strong>{item.name}</strong>

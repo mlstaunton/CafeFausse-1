@@ -81,9 +81,12 @@ def create_app(config_override=None):
   def spa_static(path):
     if path.startswith("api/"):
       return jsonify({"error": "Not found"}), 404
+    index_file = Path(app.static_folder) / "index.html"
     file_path = Path(app.static_folder) / path
     if file_path.exists() and file_path.is_file():
       return send_from_directory(app.static_folder, path)
+    if not index_file.exists():
+      return jsonify({"message": "Frontend build not found. Run frontend build."}), 503
     return send_from_directory(app.static_folder, "index.html")
 
   return app
