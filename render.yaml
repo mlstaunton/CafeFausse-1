@@ -7,6 +7,7 @@ services:
       pip install -r requirements.txt
       npm --prefix frontend install
       npm --prefix frontend run build
+      test -f frontend/dist/index.html
     startCommand: gunicorn wsgi:app
     envVars:
       - key: PYTHON_VERSION
