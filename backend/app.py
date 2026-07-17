@@ -23,7 +23,9 @@ def resolve_frontend_dist():
 
 def create_app(config_override=None):
   frontend_dist = resolve_frontend_dist()
-  app = Flask(__name__, static_folder=str(frontend_dist), static_url_path="/")
+  # Keep Flask's built-in static route off root so SPA routes (/menu, /about, etc.)
+  # are handled by our explicit fallback route below.
+  app = Flask(__name__, static_folder=str(frontend_dist), static_url_path="/_static")
   app.config.from_object(Config)
   if config_override:
     app.config.update(config_override)
