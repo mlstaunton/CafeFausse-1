@@ -14,6 +14,23 @@ export default function DevTools() {
     setBatchForm((prev) => ({ ...prev, [name]: value }));
   }
 
+  async function parseApiResponse(response) {
+    const contentType = response.headers.get("content-type") || "";
+    if (contentType.includes("application/json")) {
+      return await response.json();
+    }
+
+    const text = await response.text();
+    // Common symptom of stale deploy or routing fallback to index.html.
+    if (text.trim().startsWith("<!doctype") || text.trim().startsWith("<html")) {
+      return {
+        error:
+          "Received HTML instead of API JSON. Verify latest backend is deployed and you are signed in via /admin.",
+      };
+    }
+    return { error: text || "Unexpected non-JSON response from API." };
+  }
+
   async function runBatchBooking(event) {
     event.preventDefault();
     setMessage("");
@@ -30,8 +47,11 @@ export default function DevTools() {
           quantity: Number(batchForm.quantity),
         }),
       });
-      const payload = await response.json();
+      const payload = await parseApiResponse(response);
       if (!response.ok) {
+        if (response.status === 401) {
+          throw new Error("Please sign in at /admin before using /dev tools.");
+        }
         throw new Error(payload.error || "Batch booking failed.");
       }
       setMessage(
@@ -55,8 +75,11 @@ export default function DevTools() {
           credentials: "include",
         }
       );
-      const payload = await response.json();
+      const payload = await parseApiResponse(response);
       if (!response.ok) {
+        if (response.status === 401) {
+          throw new Error("Please sign in at /admin before using /dev tools.");
+        }
         throw new Error(payload.error || "Unable to clear day bookings.");
       }
       setMessage(`Deleted ${payload.deleted_count} reservation(s) for ${clearDate}.`);
