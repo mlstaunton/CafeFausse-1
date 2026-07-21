@@ -25,7 +25,7 @@ export default function DevTools() {
     if (text.trim().startsWith("<!doctype") || text.trim().startsWith("<html")) {
       return {
         error:
-          "Received HTML instead of API JSON. Verify latest backend is deployed and you are signed in via /admin.",
+          "Received HTML instead of API JSON. This usually means backend route is missing/stale on deploy. Confirm latest backend is deployed and you are signed in via /admin.",
       };
     }
     return { error: text || "Unexpected non-JSON response from API." };

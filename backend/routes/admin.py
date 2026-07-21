@@ -1,5 +1,6 @@
 from decimal import Decimal, InvalidOperation
 from datetime import datetime
+from datetime import time as time_obj
 from functools import wraps
 import random
 
@@ -28,6 +29,13 @@ def parse_service_datetime(date_value, time_value):
     return datetime.fromisoformat(f"{date_value}T{time_value}")
   except ValueError:
     return None
+
+
+def is_within_open_hours(slot):
+  service_time = slot.time()
+  opens_at = time_obj(17, 0)
+  closes_at = time_obj(21, 0) if slot.weekday() == 6 else time_obj(23, 0)
+  return opens_at <= service_time <= closes_at
 
 
 @admin_bp.post("/login")
@@ -212,6 +220,8 @@ def dev_book_batch():
   slot = parse_service_datetime(date_value, time_value)
   if not slot:
     return jsonify({"error": "Valid date and time are required."}), 400
+  if not is_within_open_hours(slot):
+    return jsonify({"error": "Selected time is outside opening hours."}), 400
 
   try:
     qty = int(quantity)

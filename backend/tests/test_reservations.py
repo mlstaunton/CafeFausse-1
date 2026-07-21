@@ -43,6 +43,20 @@ def test_reservation_rejects_invalid_email(client):
   assert response.get_json()["error"] == "A valid email address is required."
 
 
+def test_reservation_rejects_outside_opening_hours(client):
+  response = client.post(
+      "/api/reservations",
+      json={
+          "time_slot": "2026-07-01T14:00",
+          "guests": 2,
+          "customer_name": "Too Early Guest",
+          "email_address": "early@example.com",
+      },
+  )
+  assert response.status_code == 400
+  assert response.get_json()["error"] == "Selected time is outside opening hours."
+
+
 def test_no_more_than_30_tables_can_be_booked_per_evening(client):
   for index in range(30):
     response = client.post(

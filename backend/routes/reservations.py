@@ -1,6 +1,7 @@
 import re
 import random
 from datetime import datetime
+from datetime import time as time_obj
 
 from flask import Blueprint, jsonify, request
 
@@ -42,11 +43,20 @@ def tables_taken_for_service_date(service_date):
   return {row[0] for row in rows}
 
 
+def is_within_open_hours(slot):
+  service_time = slot.time()
+  opens_at = time_obj(17, 0)
+  closes_at = time_obj(21, 0) if slot.weekday() == 6 else time_obj(23, 0)
+  return opens_at <= service_time <= closes_at
+
+
 @reservations_bp.get("/availability")
 def check_availability():
   time_slot = parse_slot(request.args.get("time_slot"))
   if not time_slot:
     return jsonify({"error": "Invalid time slot format."}), 400
+  if not is_within_open_hours(time_slot):
+    return jsonify({"error": "Selected time is outside opening hours."}), 400
 
   service_date = time_slot.date()
   taken_tables = tables_taken_for_service_date(service_date)
@@ -76,6 +86,8 @@ def create_reservation():
     return jsonify({"error": "Missing required reservation fields."}), 400
   if not is_valid_email(email_address):
     return jsonify({"error": "A valid email address is required."}), 400
+  if not is_within_open_hours(slot):
+    return jsonify({"error": "Selected time is outside opening hours."}), 400
 
   try:
     guests_int = int(guests)
