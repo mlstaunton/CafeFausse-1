@@ -31,6 +31,15 @@ def parse_service_datetime(date_value, time_value):
     return None
 
 
+def parse_service_date(date_value):
+  if not date_value:
+    return None
+  try:
+    return datetime.strptime(date_value, "%Y-%m-%d").date()
+  except ValueError:
+    return None
+
+
 def is_within_open_hours(slot):
   service_time = slot.time()
   opens_at = time_obj(17, 0)
@@ -158,9 +167,12 @@ def get_newsletter():
 @admin_required
 def list_reservations():
   query = Reservation.query.order_by(Reservation.time_slot.asc(), Reservation.table_number.asc())
-  date_filter = (request.args.get("date") or "").strip()
-  if date_filter:
-    query = query.filter(db.func.date(Reservation.time_slot) == date_filter)
+  date_filter_raw = (request.args.get("date") or "").strip()
+  if date_filter_raw:
+    service_date = parse_service_date(date_filter_raw)
+    if not service_date:
+      return jsonify({"error": "Date must use YYYY-MM-DD format."}), 400
+    query = query.filter(db.func.date(Reservation.time_slot) == service_date)
 
   rows = query.all()
   return (
@@ -200,9 +212,12 @@ def cancel_reservation(reservation_id):
 @admin_bp.delete("/reservations/by-date")
 @admin_required
 def clear_reservations_for_date():
-  service_date = (request.args.get("date") or "").strip()
-  if not service_date:
+  service_date_raw = (request.args.get("date") or "").strip()
+  if not service_date_raw:
     return jsonify({"error": "A date query parameter is required."}), 400
+  service_date = parse_service_date(service_date_raw)
+  if not service_date:
+    return jsonify({"error": "Date must use YYYY-MM-DD format."}), 400
 
   deleted = Reservation.query.filter(db.func.date(Reservation.time_slot) == service_date).delete()
   db.session.commit()
@@ -231,9 +246,10 @@ def dev_book_batch():
     return jsonify({"error": "Quantity must be at least 1."}), 400
 
   service_date = slot.date().isoformat()
+  service_date_obj = slot.date()
   taken_rows = (
       db.session.query(Reservation.table_number)
-      .filter(db.func.date(Reservation.time_slot) == service_date)
+      .filter(db.func.date(Reservation.time_slot) == service_date_obj)
       .all()
   )
   taken_tables = {row[0] for row in taken_rows}
