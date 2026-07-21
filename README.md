@@ -158,3 +158,5 @@ Expected: `{"status":"ok","database":"ok",...}`
 - `GET /api/admin/newsletter` (auth required)
 - `GET /api/admin/reservations` (auth required)
 - `DELETE /api/admin/reservations/<reservation_id>` (auth required)
+- `DELETE /api/admin/reservations/by-date?date=YYYY-MM-DD` (auth required)
+- `POST /api/admin/dev/book-batch` (auth required; hidden `/dev` utility page)

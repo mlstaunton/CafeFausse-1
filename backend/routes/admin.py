@@ -1,5 +1,7 @@
 from decimal import Decimal, InvalidOperation
+from datetime import datetime
 from functools import wraps
+import random
 
 from flask import Blueprint, current_app, jsonify, request, session
 
@@ -17,6 +19,15 @@ def admin_required(handler):
     return handler(*args, **kwargs)
 
   return wrapped
+
+
+def parse_service_datetime(date_value, time_value):
+  if not date_value or not time_value:
+    return None
+  try:
+    return datetime.fromisoformat(f"{date_value}T{time_value}")
+  except ValueError:
+    return None
 
 
 @admin_bp.post("/login")
@@ -176,3 +187,90 @@ def cancel_reservation(reservation_id):
   db.session.delete(reservation)
   db.session.commit()
   return jsonify({"message": "Reservation canceled."}), 200
+
+
+@admin_bp.delete("/reservations/by-date")
+@admin_required
+def clear_reservations_for_date():
+  service_date = (request.args.get("date") or "").strip()
+  if not service_date:
+    return jsonify({"error": "A date query parameter is required."}), 400
+
+  deleted = Reservation.query.filter(db.func.date(Reservation.time_slot) == service_date).delete()
+  db.session.commit()
+  return jsonify({"message": "Reservations cleared.", "deleted_count": deleted}), 200
+
+
+@admin_bp.post("/dev/book-batch")
+@admin_required
+def dev_book_batch():
+  payload = request.get_json() or {}
+  date_value = (payload.get("date") or "").strip()
+  time_value = (payload.get("time") or "").strip()
+  quantity = payload.get("quantity", 1)
+
+  slot = parse_service_datetime(date_value, time_value)
+  if not slot:
+    return jsonify({"error": "Valid date and time are required."}), 400
+
+  try:
+    qty = int(quantity)
+  except (TypeError, ValueError):
+    return jsonify({"error": "Quantity must be a whole number."}), 400
+  if qty < 1:
+    return jsonify({"error": "Quantity must be at least 1."}), 400
+
+  service_date = slot.date().isoformat()
+  taken_rows = (
+      db.session.query(Reservation.table_number)
+      .filter(db.func.date(Reservation.time_slot) == service_date)
+      .all()
+  )
+  taken_tables = {row[0] for row in taken_rows}
+  available_tables = [table for table in range(1, 31) if table not in taken_tables]
+  if not available_tables:
+    return jsonify({"error": "All 30 tables are already booked for that evening."}), 409
+
+  to_book = min(qty, len(available_tables))
+  booked_tables = []
+  created_ids = []
+  timestamp_tag = datetime.utcnow().strftime("%Y%m%d%H%M%S")
+
+  for table_number in random.sample(available_tables, to_book):
+    email = f"dev-{date_value}-{table_number}-{timestamp_tag}@cafefausse.local".lower()
+    customer = Customer.query.filter_by(email_address=email).first()
+    if not customer:
+      customer = Customer(
+          customer_name=f"Dev Booking {table_number}",
+          email_address=email,
+          phone_number=None,
+          newsletter_signup=False,
+      )
+      db.session.add(customer)
+      db.session.flush()
+
+    reservation = Reservation(
+        customer_id=customer.customer_id,
+        time_slot=slot,
+        table_number=table_number,
+        guests=2,
+    )
+    db.session.add(reservation)
+    db.session.flush()
+    booked_tables.append(table_number)
+    created_ids.append(reservation.reservation_id)
+
+  db.session.commit()
+  return (
+      jsonify(
+          {
+              "message": "Batch booking complete.",
+              "service_date": service_date,
+              "requested": qty,
+              "created": to_book,
+              "booked_tables": sorted(booked_tables),
+              "reservation_ids": created_ids,
+          }
+      ),
+      201,
+  )

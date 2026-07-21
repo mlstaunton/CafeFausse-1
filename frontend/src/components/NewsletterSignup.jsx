@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { apiUrl } from "../lib/api";
 
+const EMAIL_PATTERN = "^[A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]+@[A-Za-z0-9-]+(?:\\.[A-Za-z0-9-]+)+$";
+
 export default function NewsletterSignup() {
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
@@ -11,11 +13,17 @@ export default function NewsletterSignup() {
     setMessage("");
     setError("");
 
+    const normalized = email.trim().toLowerCase();
+    if (!new RegExp(EMAIL_PATTERN).test(normalized) || normalized.includes("..")) {
+      setError("Please enter a valid email address.");
+      return;
+    }
+
     try {
       const response = await fetch(apiUrl("/api/newsletter"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email_address: email }),
+        body: JSON.stringify({ email_address: normalized }),
       });
       const payload = await response.json();
       if (!response.ok) {
@@ -42,6 +50,8 @@ export default function NewsletterSignup() {
           value={email}
           onChange={(event) => setEmail(event.target.value)}
           placeholder="you@example.com"
+          pattern={EMAIL_PATTERN}
+          title="Enter a valid email like name@example.com"
           required
         />
         <button type="submit" className="newsletter-submit">

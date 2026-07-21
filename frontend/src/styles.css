@@ -894,3 +894,36 @@ button {
     max-width: none;
   }
 }
+
+@media (max-width: 560px) {
+  .page,
+  .home-details,
+  .signature-grid {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
+
+  .hero-premium {
+    height: clamp(320px, 55vh, 460px);
+    border-radius: 12px;
+  }
+
+  .premium-copy h2 {
+    font-size: clamp(1.5rem, 8vw, 2.2rem);
+  }
+
+  .premium-copy p {
+    max-width: none;
+  }
+
+  .gallery-item img {
+    height: 200px;
+  }
+
+  .home-details,
+  .signature-grid,
+  .gallery-grid,
+  .card-grid {
+    grid-template-columns: 1fr;
+  }
+}

@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { apiUrl } from "../lib/api";
 
+const EMAIL_PATTERN = "^[A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]+@[A-Za-z0-9-]+(?:\\.[A-Za-z0-9-]+)+$";
+
 const initialState = {
   reservation_date: "",
   reservation_time: "",
@@ -113,9 +115,15 @@ export default function Reservations() {
       setError("Please select both a date and time.");
       return;
     }
+    const normalizedEmail = formData.email_address.trim().toLowerCase();
+    if (!new RegExp(EMAIL_PATTERN).test(normalizedEmail) || normalizedEmail.includes("..")) {
+      setError("Please enter a valid email address.");
+      return;
+    }
 
     const payloadBody = {
       ...formData,
+      email_address: normalizedEmail,
       time_slot: `${formData.reservation_date}T${formData.reservation_time}`,
     };
 
@@ -220,6 +228,8 @@ export default function Reservations() {
               name="email_address"
               value={formData.email_address}
               onChange={onChange}
+              pattern={EMAIL_PATTERN}
+              title="Enter a valid email like name@example.com"
               required
             />
           </label>

@@ -27,3 +27,43 @@ def test_create_reservation_and_list_and_cancel(client):
   list_after_delete = client.get("/api/admin/reservations")
   assert list_after_delete.status_code == 200
   assert list_after_delete.get_json()["data"] == []
+
+
+def test_reservation_rejects_invalid_email(client):
+  response = client.post(
+      "/api/reservations",
+      json={
+          "time_slot": "2026-07-01T18:00",
+          "guests": 2,
+          "customer_name": "Invalid Email Guest",
+          "email_address": "a@.",
+      },
+  )
+  assert response.status_code == 400
+  assert response.get_json()["error"] == "A valid email address is required."
+
+
+def test_no_more_than_30_tables_can_be_booked_per_evening(client):
+  for index in range(30):
+    response = client.post(
+        "/api/reservations",
+        json={
+            "time_slot": f"2026-07-02T{18 + (index % 2):02d}:00",
+            "guests": 2,
+            "customer_name": f"Guest {index}",
+            "email_address": f"guest{index}@example.com",
+        },
+    )
+    assert response.status_code == 201
+
+  overflow = client.post(
+      "/api/reservations",
+      json={
+          "time_slot": "2026-07-02T22:30",
+          "guests": 2,
+          "customer_name": "Overflow Guest",
+          "email_address": "overflow@example.com",
+      },
+  )
+  assert overflow.status_code == 409
+  assert overflow.get_json()["error"] == "All 30 tables are fully booked for that evening."

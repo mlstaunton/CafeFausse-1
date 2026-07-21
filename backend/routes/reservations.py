@@ -1,3 +1,4 @@
+import re
 import random
 from datetime import datetime
 
@@ -9,6 +10,10 @@ from models import Customer, Reservation
 reservations_bp = Blueprint("reservations", __name__)
 
 TOTAL_TABLES = 30
+EMAIL_REGEX = re.compile(
+    r"^[A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]+@"
+    r"[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+$"
+)
 
 
 def parse_slot(raw_slot):
@@ -20,20 +25,42 @@ def parse_slot(raw_slot):
     return None
 
 
+def is_valid_email(email):
+  if not email or len(email) > 254:
+    return False
+  if ".." in email:
+    return False
+  return bool(EMAIL_REGEX.fullmatch(email))
+
+
+def tables_taken_for_service_date(service_date):
+  rows = (
+      db.session.query(Reservation.table_number)
+      .filter(db.func.date(Reservation.time_slot) == service_date)
+      .all()
+  )
+  return {row[0] for row in rows}
+
+
 @reservations_bp.get("/availability")
 def check_availability():
   time_slot = parse_slot(request.args.get("time_slot"))
   if not time_slot:
     return jsonify({"error": "Invalid time slot format."}), 400
 
-  reserved = (
-      db.session.query(Reservation.table_number)
-      .filter(Reservation.time_slot == time_slot)
-      .all()
-  )
-  taken_tables = {row[0] for row in reserved}
+  service_date = time_slot.date()
+  taken_tables = tables_taken_for_service_date(service_date)
   available = TOTAL_TABLES - len(taken_tables)
-  return jsonify({"available_tables": available, "is_available": available > 0}), 200
+  return (
+      jsonify(
+          {
+              "service_date": service_date.isoformat(),
+              "available_tables": available,
+              "is_available": available > 0,
+          }
+      ),
+      200,
+  )
 
 
 @reservations_bp.post("")
@@ -47,6 +74,8 @@ def create_reservation():
 
   if not slot or not customer_name or not email_address:
     return jsonify({"error": "Missing required reservation fields."}), 400
+  if not is_valid_email(email_address):
+    return jsonify({"error": "A valid email address is required."}), 400
 
   try:
     guests_int = int(guests)
@@ -55,15 +84,11 @@ def create_reservation():
   if guests_int < 1:
     return jsonify({"error": "Guest count must be at least 1."}), 400
 
-  reserved = (
-      db.session.query(Reservation.table_number)
-      .filter(Reservation.time_slot == slot)
-      .all()
-  )
-  taken_tables = {row[0] for row in reserved}
+  service_date = slot.date()
+  taken_tables = tables_taken_for_service_date(service_date)
   available_tables = [table for table in range(1, TOTAL_TABLES + 1) if table not in taken_tables]
   if not available_tables:
-    return jsonify({"error": "Selected time slot is fully booked."}), 409
+    return jsonify({"error": "All 30 tables are fully booked for that evening."}), 409
 
   customer = Customer.query.filter_by(email_address=email_address).first()
   if not customer:
@@ -94,6 +119,7 @@ def create_reservation():
               "message": "Reservation confirmed.",
               "reservation_id": reservation.reservation_id,
               "table_number": reservation.table_number,
+              "service_date": service_date.isoformat(),
               "time_slot": slot.isoformat(timespec="minutes"),
           }
       ),
