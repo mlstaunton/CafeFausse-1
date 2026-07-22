@@ -1,6 +1,8 @@
 import re
 import random
 from datetime import datetime
+from datetime import date as date_obj
+from datetime import timedelta
 from datetime import time as time_obj
 
 from flask import Blueprint, jsonify, request
@@ -43,6 +45,15 @@ def tables_taken_for_service_date(service_date):
   return {row[0] for row in rows}
 
 
+def parse_service_date(raw_date):
+  if not raw_date:
+    return None
+  try:
+    return datetime.strptime(raw_date, "%Y-%m-%d").date()
+  except ValueError:
+    return None
+
+
 def is_within_open_hours(slot):
   service_time = slot.time()
   opens_at = time_obj(17, 0)
@@ -67,6 +78,44 @@ def check_availability():
               "service_date": service_date.isoformat(),
               "available_tables": available,
               "is_available": available > 0,
+          }
+      ),
+      200,
+  )
+
+
+@reservations_bp.get("/fully-booked")
+def fully_booked_dates():
+  start_raw = (request.args.get("start") or "").strip()
+  days_raw = request.args.get("days", "60")
+
+  start_date = parse_service_date(start_raw) or datetime.utcnow().date()
+  try:
+    days = int(days_raw)
+  except ValueError:
+    return jsonify({"error": "Days must be a number."}), 400
+  if days < 1 or days > 180:
+    return jsonify({"error": "Days must be between 1 and 180."}), 400
+
+  end_date = start_date + timedelta(days=days)
+  service_date = db.func.date(Reservation.time_slot)
+  full_rows = (
+      db.session.query(
+          service_date.label("service_date"),
+          db.func.count(db.distinct(Reservation.table_number)).label("table_count"),
+      )
+      .filter(service_date >= start_date, service_date < end_date)
+      .group_by(service_date)
+      .having(db.func.count(db.distinct(Reservation.table_number)) >= TOTAL_TABLES)
+      .all()
+  )
+
+  return (
+      jsonify(
+          {
+              "start_date": start_date.isoformat(),
+              "days": days,
+              "fully_booked_dates": [row.service_date.isoformat() for row in full_rows],
           }
       ),
       200,

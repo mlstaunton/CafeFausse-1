@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { apiUrl } from "../lib/api";
 
 const EMAIL_PATTERN = "^[A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]+@[A-Za-z0-9-]+(?:\\.[A-Za-z0-9-]+)+$";
@@ -49,7 +49,25 @@ export default function Reservations() {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [suggestions, setSuggestions] = useState([]);
+  const [fullyBookedDates, setFullyBookedDates] = useState([]);
   const availableTimes = buildTimeSlots(formData.reservation_date);
+  const fullyBookedSet = new Set(fullyBookedDates);
+  const isSelectedDateFullyBooked = fullyBookedSet.has(formData.reservation_date);
+
+  useEffect(() => {
+    async function loadFullyBookedDates() {
+      try {
+        const response = await fetch(apiUrl("/api/reservations/fully-booked?days=60"));
+        if (!response.ok) return;
+        const payload = await response.json();
+        setFullyBookedDates(payload.fully_booked_dates || []);
+      } catch {
+        // Non-blocking; reservation form can still function.
+      }
+    }
+
+    loadFullyBookedDates();
+  }, []);
 
   function onChange(event) {
     const { name, value } = event.target;
@@ -115,6 +133,10 @@ export default function Reservations() {
       setError("Please select both a date and time.");
       return;
     }
+    if (isSelectedDateFullyBooked) {
+      setError("This date is fully booked. Please choose another evening.");
+      return;
+    }
     const normalizedEmail = formData.email_address.trim().toLowerCase();
     if (!new RegExp(EMAIL_PATTERN).test(normalizedEmail) || normalizedEmail.includes("..")) {
       setError("Please enter a valid email address.");
@@ -174,9 +196,13 @@ export default function Reservations() {
                 onChange={(event) => {
                   onChange(event);
                   setFormData((prev) => ({ ...prev, reservation_time: "" }));
+                  setError("");
                 }}
                 required
               />
+              {isSelectedDateFullyBooked && (
+                <p className="error inline-error">This evening is fully booked.</p>
+              )}
             </label>
             <label>
               Time
@@ -185,7 +211,7 @@ export default function Reservations() {
                 value={formData.reservation_time}
                 onChange={onChange}
                 required
-                disabled={!formData.reservation_date}
+                disabled={!formData.reservation_date || isSelectedDateFullyBooked}
               >
                 <option value="">
                   {formData.reservation_date ? "Select a time" : "Select a date first"}
@@ -254,6 +280,19 @@ export default function Reservations() {
             <li>Please contact us for parties larger than 12 guests.</li>
             <li>Private dining requests are available with advance notice.</li>
           </ul>
+          {fullyBookedDates.length > 0 && (
+            <>
+              <h3>Fully Booked Dates</h3>
+              <p>Next 60 days currently unavailable:</p>
+              <div className="fully-booked-list">
+                {fullyBookedDates.map((date) => (
+                  <span key={date} className="fully-booked-chip">
+                    {date}
+                  </span>
+                ))}
+              </div>
+            </>
+          )}
         </aside>
       </section>
 
